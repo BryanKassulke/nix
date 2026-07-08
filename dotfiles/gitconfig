@@ -1,0 +1,22 @@
+[core]
+	excludesfile = /Users/Bryan/.gitignore_global
+[difftool "sourcetree"]
+	cmd = opendiff "$LOCAL" "$REMOTE"
+	path =
+[mergetool "sourcetree"]
+	cmd = /Applications/Sourcetree.app/Contents/Resources/opendiff-w.sh "$LOCAL" "$REMOTE" -ancestor "$BASE" -merge "$MERGED"
+	trustExitCode = true
+[user]
+	name = Bryan Kassulke
+[alias]
+	logline = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+	st = status -sb
+	cto = "!f() { git checkout --track origin/\"$1\"; }; f"
+	pub = "!f() { git checkout -b \"$1\" && git push -u origin \"$1\"; }; f"
+	mad = "!f() { git pull && git merge \"$1\" && git branch -d \"$1\" && git push origin --delete \"$1\" && git fetch -p; }; f"
+[init]
+	defaultBranch = main
+[pull]
+	rebase = false
+[include]
+	path = ~/.gitconfig.local

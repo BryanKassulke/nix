@@ -1,0 +1,2 @@
+# Include .bashrc if it exists
+[ -f $HOME/.bashrc ] && source $HOME/.bashrc || echo ".bashrc doesn't exist"

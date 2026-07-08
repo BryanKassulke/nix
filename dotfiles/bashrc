@@ -1,0 +1,46 @@
+# Stop annoying zsh warning
+export BASH_SILENCE_DEPRECATION_WARNING=1
+
+# Terminal colours
+export CLICOLOR=1
+alias ls="ls -a -hl -G"
+
+# Git
+if [ -f ~/.git-completion.bash ]; then
+  . ~/.git-completion.bash
+fi
+
+# SSH
+ssh-add --apple-use-keychain ~/.ssh/id_rsa >/dev/null 2>&1
+
+# Homebrew - Apple Silicon Fix
+export PATH="/opt/homebrew/bin:$PATH"
+
+# Node
+export NODE_OPTIONS=--max-old-space-size=4096
+
+# NVM
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion
+autonvm() { [ -f .nvmrc ] && [ "$(nvm version "$(cat .nvmrc)")" != "$(nvm current)" ] && nvm use --silent; }
+PROMPT_COMMAND="autonvm${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
+
+# pnpm
+export PNPM_HOME="/Users/Bryan/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end
+
+# Python version
+# alias python='/usr/local/bin/python3'
+
+# direnv (nix dev shells)
+command -v direnv >/dev/null && eval "$(direnv hook bash)"
+
+# Per-machine extras (work host symlinks this; personal host doesn't)
+[ -f ~/.bashrc.local ] && . ~/.bashrc.local
+
+. "$HOME/.cargo/env"
