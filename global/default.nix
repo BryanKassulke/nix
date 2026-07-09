@@ -242,20 +242,7 @@
           viAlias = true;
           vimAlias = true;
           plugins = with pkgs.vimPlugins; [ tokyonight-nvim ];
-          initLua = ''
-            vim.g.mapleader = " "
-            vim.opt.number = true
-            vim.opt.relativenumber = true
-            vim.opt.expandtab = true
-            vim.opt.shiftwidth = 2
-            vim.opt.tabstop = 2
-            vim.opt.smartindent = true
-            vim.opt.ignorecase = true
-            vim.opt.smartcase = true
-            vim.opt.termguicolors = true
-            vim.opt.scrolloff = 4
-            pcall(vim.cmd.colorscheme, "tokyonight-storm")
-          '';
+          initLua = builtins.readFile ./config/init.lua;
         };
         # tmux, vi keys, mouse, Tokyo Night Storm status.
         programs.tmux = {
@@ -265,61 +252,13 @@
           keyMode = "vi";
           historyLimit = 50000;
           terminal = "tmux-256color";
-          extraConfig = ''
-            set -ga terminal-overrides ",*256col*:Tc"
-            set -g status-style "fg=#c0caf5,bg=#1f2335"
-            set -g status-left "#[fg=#1f2335,bg=#7aa2f7,bold] #S #[fg=#7aa2f7,bg=#1f2335] "
-            set -g status-right "#[fg=#565f89]%H:%M "
-            set -g window-status-current-style "fg=#7aa2f7,bold"
-            set -g pane-active-border-style "fg=#7aa2f7"
-            set -g pane-border-style "fg=#414868"
-          '';
+          extraConfig = builtins.readFile ./config/tmux.conf;
         };
         # Bash, native. initExtra holds interactive setup, scopes append more.
         programs.bash = {
           enable = true;
           shellAliases.ls = "ls -a -hl -G";
-          initExtra = ''
-            export BASH_SILENCE_DEPRECATION_WARNING=1
-            export CLICOLOR=1
-            export NODE_OPTIONS=--max-old-space-size=4096
-
-            # git bash-completion
-            [ -f ~/.git-completion.bash ] && . ~/.git-completion.bash
-
-            # load the bitbucket key into the agent + keychain
-            ssh-add --apple-use-keychain ~/.ssh/id_rsa >/dev/null 2>&1
-
-            # Homebrew (Apple Silicon)
-            export PATH="/opt/homebrew/bin:$PATH"
-
-            # nvm, plus auto-switch on a repo's .nvmrc
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-            autonvm() { [ -f .nvmrc ] && [ "$(nvm version "$(cat .nvmrc)")" != "$(nvm current)" ] && nvm use --silent; }
-            PROMPT_COMMAND="autonvm''${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
-
-            # pnpm
-            export PNPM_HOME="/Users/Bryan/Library/pnpm"
-            case ":$PATH:" in
-              *":$PNPM_HOME:"*) ;;
-              *) export PATH="$PNPM_HOME:$PATH" ;;
-            esac
-
-            # Rust
-            [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
-
-            # nix bin dirs to the front, so nix git/tools win over the system ones
-            for _nixbin in \
-              "/run/current-system/sw/bin" \
-              "/etc/profiles/per-user/$USER/bin" \
-              "$HOME/.nix-profile/bin"; do
-              [ -d "$_nixbin" ] && PATH="$_nixbin:$PATH"
-            done
-            unset _nixbin
-            export PATH
-          '';
+          initExtra = builtins.readFile ./config/bashrc.bash;
         };
         # Nix bin dirs on PATH for every login shell, including non-interactive
         # ones (bashrc's loop only runs when interactive). Sourced via ~/.profile.
