@@ -68,7 +68,7 @@ On-demand dev shells for project specific dependencies. Each entry in [`environm
 | --- | --- |
 | None | |
 
-## Installation
+## First-time setup on a new host
 
 ```bash
 git clone https://github.com/BryanKassulke/nix.git ~/dev/nix
@@ -80,7 +80,10 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 # 2. Install Homebrew (nix-darwin manages the cask *list*, not brew itself).
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# 3. First switch, bootstraps nix-darwin (there's no darwin-rebuild yet).
+# 3. (Optional) grab this machine's uid so nix-darwin can own the login shell.
+id -u   # put the number in the host's `local.userUid` (see Notes)
+
+# 4. First switch, bootstraps nix-darwin (there's no darwin-rebuild yet).
 sudo nix run nix-darwin -- switch --flake .#bryan
 ```
 
@@ -149,6 +152,11 @@ darwin-rebuild switch --flake .#<host> --override-input nix "git+file://$HOME/de
 ## Notes
 
 - Determinate Nix owns the Nix daemon. I've defined this in `global/default.nix` (`nix.enable = false;`) to avoid a conflict.
+- To use the nix-darwin managed bash (5.x) as the login shell, set `local.userUid` to the machine's `id -u`. Global handles this switch.
+  ```nix
+  # hosts/<host>.nix
+  local.userUid = 501;
+  ```
 - Homebrew cleanup is set to `"none"` so manually installed apps are preserved. Set it to `"zap"` if you want a fresh state each time.
 - No secret support yet. We'll see how that goes.
 - Commit `flake.lock` so every host resolves identical dependencies.

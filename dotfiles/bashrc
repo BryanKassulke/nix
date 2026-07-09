@@ -44,3 +44,13 @@ command -v direnv >/dev/null && eval "$(direnv hook bash)"
 [ -f ~/.bashrc.local ] && . ~/.bashrc.local
 
 . "$HOME/.cargo/env"
+
+# shuffles nix git dirs to the front
+for _nixbin in \
+  "/run/current-system/sw/bin" \
+  "/etc/profiles/per-user/$USER/bin" \
+  "$HOME/.nix-profile/bin"; do
+  [ -d "$_nixbin" ] && PATH="$_nixbin:$PATH"
+done
+unset _nixbin
+export PATH
