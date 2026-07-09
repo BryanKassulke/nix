@@ -146,10 +146,6 @@
         home.homeDirectory = "/Users/Bryan";
         # Dotfiles live in ./dotfiles, symlinked in place. Out-of-store = edit the
         # repo file and open a new shell, no rebuild needed.
-        home.file.".bashrc".source = link "bashrc";
-        home.file.".bash_profile".source = link "bash_profile";
-        home.file.".gitconfig".source = link "gitconfig";
-        home.file.".gitignore_global".source = link "gitignore_global";
         # git bash-completion: grabbed (pinned) from upstream at build time.
         home.file.".git-completion.bash".source = pkgs.fetchurl {
           url = "https://raw.githubusercontent.com/git/git/v2.43.0/contrib/completion/git-completion.bash";
@@ -164,6 +160,95 @@
         programs.direnv = {
           enable = true;
           nix-direnv.enable = true;
+        };
+        # Bash, managed natively. initExtra holds arbitrary interactive setup;
+        # hosts and envs add their own via more programs.bash.initExtra.
+        programs.bash = {
+          enable = true;
+          shellAliases.ls = "ls -a -hl -G";
+          initExtra = ''
+            export BASH_SILENCE_DEPRECATION_WARNING=1
+            export CLICOLOR=1
+            export NODE_OPTIONS=--max-old-space-size=4096
+
+            # git bash-completion
+            [ -f ~/.git-completion.bash ] && . ~/.git-completion.bash
+
+            # load the bitbucket key into the agent + keychain
+            ssh-add --apple-use-keychain ~/.ssh/id_rsa >/dev/null 2>&1
+
+            # Homebrew (Apple Silicon)
+            export PATH="/opt/homebrew/bin:$PATH"
+
+            # nvm, plus auto-switch on a repo's .nvmrc
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+            autonvm() { [ -f .nvmrc ] && [ "$(nvm version "$(cat .nvmrc)")" != "$(nvm current)" ] && nvm use --silent; }
+            PROMPT_COMMAND="autonvm''${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
+
+            # pnpm
+            export PNPM_HOME="/Users/Bryan/Library/pnpm"
+            case ":$PATH:" in
+              *":$PNPM_HOME:"*) ;;
+              *) export PATH="$PNPM_HOME:$PATH" ;;
+            esac
+
+            # Rust
+            [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+
+            # nix bin dirs to the front, so nix git/tools win over the system ones
+            for _nixbin in \
+              "/run/current-system/sw/bin" \
+              "/etc/profiles/per-user/$USER/bin" \
+              "$HOME/.nix-profile/bin"; do
+              [ -d "$_nixbin" ] && PATH="$_nixbin:$PATH"
+            done
+            unset _nixbin
+            export PATH
+          '';
+        };
+        # Git, managed natively so identity, aliases and ignores sit in one place.
+        # Scopes add per-directory work identities via programs.git.includes.
+        programs.git = {
+          enable = true;
+          ignores = [ "*~" ".DS_Store" ];
+          settings = {
+            user.name = "Bryan Kassulke";
+            user.email = "bryan.kassulke@gmail.com";
+            init.defaultBranch = "main";
+            pull.rebase = false;
+            alias = {
+              logline = "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit";
+              st = "status -sb";
+              cto = ''!f() { git checkout --track origin/"$1"; }; f'';
+              pub = ''!f() { git checkout -b "$1" && git push -u origin "$1"; }; f'';
+              mad = ''!f() { git pull && git merge "$1" && git branch -d "$1" && git push origin --delete "$1" && git fetch -p; }; f'';
+            };
+            # Sourcetree diff/merge integration, kept from the old dotfile.
+            difftool.sourcetree = { cmd = ''opendiff "$LOCAL" "$REMOTE"''; path = ""; };
+            mergetool.sourcetree = {
+              cmd = ''/Applications/Sourcetree.app/Contents/Resources/opendiff-w.sh "$LOCAL" "$REMOTE" -ancestor "$BASE" -merge "$MERGED"'';
+              trustExitCode = true;
+            };
+          };
+        };
+        # Personal GitHub key. IdentitiesOnly stops ssh offering other keys
+        # first. Other hosts add their own blocks from their scope.
+        programs.ssh = {
+          enable = true;
+          enableDefaultConfig = false; # drop home-manager's legacy Host * defaults
+          settings = {
+            # macOS: cache passphrases in the keychain, load keys into the agent.
+            "*" = {
+              AddKeysToAgent = "yes";
+              UseKeychain = true;
+            };
+            "github.com" = {
+              IdentityFile = "~/.ssh/id_ed25519";
+              IdentitiesOnly = true;
+            };
+          };
         };
         # Let home-manager manage itself.
         programs.home-manager.enable = true;
