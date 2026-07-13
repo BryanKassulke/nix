@@ -2,31 +2,24 @@
 # default.nix, so it never builds. Copy to <name>.nix, trim, and uncomment its
 # line there.
 {
-  # Environment scopes (from ../environments) to pull in. Host-only.
-  environments = [ "example" ];
+  # Modules (from ../modules) to pull in as this host's footprint.
+  modules = [ "example" ];
 
-  # nix-darwin module: macOS settings, casks, Dock pins, packages.
+  # nix-darwin: this host's own macOS settings, casks, Dock pins, packages.
   darwin = { pkgs, lib, config, ... }: {
+    local.userUid = 501; # this machine's `id -u`, for login-shell ownership
     homebrew.casks = [ "some-app" ];
     environment.systemPackages = with pkgs; [ wget ];
-    # local.dockApps: lower priority sits further left.
     local.dockApps = [
       { path = "/Applications/Some App.app"; priority = 50; }
     ];
   };
 
-  # home-manager module: dotfiles, user packages, program config.
+  # home-manager: this host's dotfiles, user packages, program config.
   home = { config, pkgs, lib, ... }: {
     home.packages = with pkgs; [ ripgrep ];
     home.file.".somerc".text = "set -o vi";
-    programs.git.enable = true;
     # Register a consumer repo root (see global local.repos):
     # local.repos.example = "${config.home.homeDirectory}/dev/example";
-  };
-
-  # Dev-shell fragment. Rare on a host, but valid.
-  shell = { pkgs }: {
-    packages = with pkgs; [ jq ];
-    shellHook = "echo 'welcome'";
   };
 }

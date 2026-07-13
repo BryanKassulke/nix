@@ -1,162 +1,128 @@
-# Nix Framework
+# Bryan's Nix Framework
 
-For managing hosts and dev environments that can be layered upon by additional flakes (private repo).
+Declarative macOS config (nix-darwin + home-manager) as a pure flake. Clone it,
+then apply to any host with `darwin-rebuild switch --flake .#<host>`.
 
-It is a pure flake so just clone it, then `darwin-rebuild switch --flake .#<host>` to apply the shared config to any host.
+## Model
 
-## Structure
+- **modules** ([`modules/`](modules/)) persistent footprints, `{ darwin?, home? }`,
+  opt-in per host, applied on rebuild.
+- **shells** ([`shells/`](shells/)) dev shells, `{ pkgs }: {...}`, always available
+  via `nix develop .#<name>`, independent of any host.
+- **global** ([`global/`](global/)) the base every host gets, split into focused
+  files under [`global/darwin/`](global/darwin/) and [`global/home/`](global/home/).
 
-| Tier | Summary | Location |
-| --- | --- | --- |
-| **Global** | config every host gets: system settings, base GUI apps, dotfiles, CLI tools | [`global/`](global/) |
-| **Host** | a specific machine = Global + which environments it provisions + host identity | [`hosts/`](hosts/) |
-| **Environment** | opt-in, disposable per-project dev deps (and any host footprint they need) | [`environments/`](environments/) |
+Build order overlays: `global`, then the host's named `modules`, then the host
+itself, into one merged nix-darwin + home-manager configuration.
 
-Global + Host apply together in one command; an Environment activates only
-when you ask for it, so nothing is permanently installed and there's nothing to
-uninstall.
+### Shapes
 
-### Scopes
+```nix
+# modules/<name>.nix  and  hosts/<name>.nix   (every layer optional)
+{
+  modules = [ "name" ];                         # hosts only: modules to pull in
+  darwin  = { ... }: { <nix-darwin module> };   # system: macOS, casks, Dock pins
+  home    = { ... }: { <home-manager module> }; # user: dotfiles, CLI tools
+}
 
-Global, every host and every environment share one shape, a *scope*:
+# shells/<name>/default.nix
+{ pkgs }: { packages = [ ]; shellHook = ""; }   # merged with the global base shell
+```
+
+## Day-to-day
+
+```bash
+darwin-rebuild switch --flake .#bryan    # apply changes to this machine
+nix develop .#<name>                     # enter a dev shell
+darwin-rebuild --rollback                # undo the last rebuild
+nix-collect-garbage                      # free disk (add --delete-older-than 30d)
+```
+
+> Flakes only see git-tracked files, so `git add` new files before rebuilding.
+
+## Add a host
+
+`hosts/<name>.nix`, then register it in [`hosts/default.nix`](hosts/default.nix):
 
 ```nix
 {
-  environments = [ "name" ];                    # hosts only: environment scopes to pull in
-  darwin = { ... }: { <nix-darwin module> };    # system: macOS, casks, Dock pins
-  home   = { ... }: { <home-manager module> };  # user: dotfiles, CLI tools
-  shell  = { pkgs }: { packages = [ ]; shellHook = ""; };  # dev shell fragment
+  modules = [ "some-module" ];       # footprints to pull in (optional)
+  darwin = { ... }: { local.userUid = 501; homebrew.casks = [ "spotify" ]; };
+  home   = { ... }: { home.file.".foo".text = "bar"; };
 }
 ```
 
-Every layer (`darwin`/`home`/`shell`) is optional. A host build overlays the
-scopes in order (global, then its named environments, then the host) into one
-merged module set. That's how an environment carries a GUI footprint even though
-dev shells only give CLI tools: its `darwin` layer installs Docker Desktop and
-the like, and a host opts in by naming it in `environments`. Each host and
-environment is one file now.
+Set `local.userUid` (your `id -u`) to get nix bash 5.x as the login shell; omit
+it to stay on Apple's 3.2.
 
-## Usage
+## Add a module
 
-No customs scripts exist (yet) so just use the following commands to be run from the repo root:
+`modules/<name>.nix`, then register it in [`modules/default.nix`](modules/default.nix).
+For anything shared across hosts (work apps, a project's GUI deps, a dotfile bundle):
 
-| Task | Command (from the repo root) |
-| --- | --- |
-| **First-time** bootstrap on a new Mac | see [First-time setup](#first-time-setup-on-a-new-host) |
-| **Rebuild** this host after an edit | `darwin-rebuild switch --flake .#<host>` |
-| Enter an **environment** shell | `nix develop .#<name>` |
-| **Free disk** (garbage-collect) | `nix-collect-garbage`, add `--delete-older-than 30d` to prune generations |
-| **Roll back** to the previous generation | `darwin-rebuild --rollback` |
+```nix
+{
+  darwin = { ... }: {
+    homebrew.casks = [ "docker-desktop" ];
+    local.dockApps = [ { path = "/Applications/Docker.app"; priority = 60; } ];
+  };
+  home = { ... }: {
+    programs.git.includes = [
+      { condition = "gitdir:~/dev/work/"; contents.user.email = "me@work.com"; }
+    ];
+  };
+}
+```
 
-> Flakes evaluate the **git-tracked** tree, so stage new files (`git add`) before evaluating.
+A host opts in with `modules = [ "<name>" ]`.
 
-## Hosts
+## Add a dev shell
 
-These represent machine-specific config extending the shared global base.
-Each entry in [`hosts/`](hosts/) is one Mac, defined as a scope
-`{ environments; darwin; home; shell; }` (all optional).
+`shells/<name>/default.nix` (the folder can hold a matching `.envrc`), then
+register it in [`shells/default.nix`](shells/default.nix):
 
-| Name | Description |
-| --- | --- |
-| [`bryan`](hosts/bryan.nix) | default personal |
+```nix
+{ pkgs }: {
+  packages = with pkgs; [ awscli2 nodejs_22 jq ];
+  shellHook = ''export FOO=bar'';
+}
+```
 
-## Environments
+It merges with the global base shell (git, neovim) and is available as
+`nix develop .#<name>` on any host, no rebuild needed.
 
-On-demand dev shells for project specific dependencies. Each entry in [`environments/`](environments/) is a project scope: the `shell` layer is the dev shell, and the optional `darwin`/`home` layers carry any host footprint (GUI apps, dotfiles) it needs.
+## Auto-enter a shell (direnv)
 
-| Name | Description |
-| --- | --- |
-| None | |
-
-## First-time setup on a new host
+Drop an `.envrc` in a project checkout and `direnv allow`:
 
 ```bash
-git clone https://github.com/BryanKassulke/nix.git ~/dev/nix
-cd ~/dev/nix
+use flake ~/dev/nix#<name>
+```
 
-# 1. Install Nix (Determinate installer, flakes enabled by default).
+direnv + nix-direnv are already enabled in [`global/home/shell.nix`](global/home/shell.nix).
+
+## First-time setup on a new Mac
+
+```bash
+git clone https://github.com/BryanKassulke/nix.git ~/dev/nix && cd ~/dev/nix
+
+# Nix (Determinate installer, flakes on by default)
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
-
-# 2. Install Homebrew (nix-darwin manages the cask *list*, not brew itself).
+# Homebrew (nix-darwin manages the cask list, not brew itself)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# 3. (Optional) grab this machine's uid so nix-darwin can own the login shell.
-id -u   # put the number in the host's `local.userUid` (see Notes)
-
-# 4. First switch, bootstraps nix-darwin (there's no darwin-rebuild yet).
-sudo nix run nix-darwin -- switch --flake .#bryan
+sudo nix run nix-darwin -- switch --flake .#bryan   # first switch, no darwin-rebuild yet
 ```
 
-Open a new terminal afterwards; from then on, apply changes with
-`darwin-rebuild switch --flake .#bryan`.
+Open a new terminal, then use `darwin-rebuild switch --flake .#bryan` from then on.
 
-> On a host that needs the private overlay, you bootstrap
-> from **that** repo instead; it pulls this framework in as an input.
+## Where things live
 
-## Common Usage
-
-**Change your host:** edit files under `global/`, `hosts/`,
-`environments/` or `dotfiles/`, then:
-
-```bash
-darwin-rebuild switch --flake .#bryan
-```
-
-Every change is a git diff, and Nix keeps generations so you can roll back with
-`darwin-rebuild --rollback`.
-
-**Free up disk:**
-
-```bash
-nix-collect-garbage                          # unreferenced store paths
-nix-collect-garbage --delete-older-than 30d  # also prune old generations
-```
-
-## Extension
-
-This flake exports its "engine" and raw defs so a consumer can extend them without
-re-importing nixpkgs:
-
-- `hosts`, `environments` are the raw defs, for merging.
-- `lib.mkOutputs { hosts; environments; }` turns a merged set of scopes into a
-  full output set (`darwinConfigurations` + `devShells`), reusing this flake's
-  pinned nixpkgs / nix-darwin / home-manager and its `global` base.
-
-In a new (potentially private) repo, you can define your own flake like so:
-
-```nix
-# private/flake.nix
-{
-  inputs.nix.url = "github:BryanKassulke/nix";
-  outputs = { self, nix }:
-    nix.lib.mkOutputs {
-      hosts        = nix.hosts        // import ./hosts;         # add/override
-      environments = nix.environments // import ./environments;
-    };
-}
-```
-
-## Testing local changes
-
-To build against the current state of `~/dev/nix`, stage all changes and add the override to the flake input:
-
-```bash
-git add -A # stage this repo's changes
-git -C ~/dev/nix add -A # and if working in a different repo
-darwin-rebuild switch --flake .#<host> --override-input nix "git+file://$HOME/dev/nix"
-```
-
-> Flakes only see git-tracked files, and a local override spans both repos, so
-> stage new files in **each** or Nix won't find them.
-
-## Notes
-
-- Determinate Nix owns the Nix daemon. I've defined this in `global/default.nix` (`nix.enable = false;`) to avoid a conflict.
-- To use the nix-darwin managed bash (5.x) as the login shell, set `local.userUid` to the machine's `id -u`. Global handles this switch.
-  ```nix
-  # hosts/<host>.nix
-  local.userUid = 501;
-  ```
-- Homebrew cleanup is set to `"none"` so manually installed apps are preserved. Set it to `"zap"` if you want a fresh state each time.
-- No secret support yet. We'll see how that goes.
-- Commit `flake.lock` so every host resolves identical dependencies.
+| Want to change | Edit |
+| --- | --- |
+| macOS defaults, dock, fonts, casks | [`global/darwin/`](global/darwin/) |
+| git, ssh, bash, editor, prompt | [`global/home/`](global/home/) |
+| bash / tmux / neovim rc | [`global/config/`](global/config/) |
+| a machine | `hosts/<name>.nix` |
+| a reusable footprint | `modules/<name>.nix` |
+| a dev shell | `shells/<name>/default.nix` |

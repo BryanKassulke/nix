@@ -16,29 +16,27 @@
     inputs@{ self, nixpkgs, flake-utils, nix-darwin, home-manager }:
     let
       system = "aarch64-darwin";
-      # Each scope is defined as: {
-      #   environments = [ names ]; # Host-only
-      #   darwin = { ... }: { <nix-darwin module> };
-      #   home   = { ... }: { <home-manager module> };
-      #   shell  = { pkgs }: { packages = [ ]; shellHook = ""; };
-      # }
-      # Each darwin/home/shell layer is optional. Scopes overlay in order
-      # (global -> envs -> host), so a machine is ONE merged module set.
+      # Two composable primitives, separated by WHEN they activate:
+      #   modules -> { darwin?, home? }   persistent host footprint, opt-in per host
+      #   shells  -> { pkgs }: fragment   dev shell, always available via `nix develop`
+      # global is the base module every host gets, and also carries the base
+      # shell fragment merged into every dev shell.
       global = import ./global;
-      # Type/default defs
-      darwinOf = l: l.darwin or ({ ... }: { });
-      homeOf = l: l.home or ({ ... }: { });
+      darwinOf = m: m.darwin or { };
+      homeOf = m: m.home or { };
       emptyShell = { ... }: { };
-      # Turn { hosts, environments } into a full flake output set. Consumers
-      # can call this with public's defs merged with their own, so they get
-      # darwinConfigurations + devShells without re-importing nixpkgs.
-      mkOutputs = { hosts ? { }, environments ? { } }:
+
+      # Turn { hosts, modules, shells } into a full flake output set. A consumer
+      # flake calls this with its own defs merged in, reusing this flake's pinned
+      # inputs and global base (no need to re-import nixpkgs).
+      mkOutputs = { hosts ? { }, modules ? { }, shells ? { } }:
         let
-          # A host build = global + each environment it names + the host, overlaid.
+          # A host build = global + each module it names + the host itself, all
+          # overlaid into one merged nix-darwin + home-manager configuration.
           mkDarwin = host:
             let
-              envScopes = map (n: environments.${n}) (host.environments or [ ]);
-              scopes = [ global ] ++ envScopes ++ [ host ];
+              named = map (n: modules.${n}) (host.modules or [ ]);
+              scopes = [ global ] ++ named ++ [ host ];
             in
             nix-darwin.lib.darwinSystem {
               inherit system;
@@ -54,17 +52,17 @@
                 }
               ];
             };
-          # A dev shell = the global shell fragment + the environment's, merged.
+
+          # A dev shell = the global base fragment + the named shell, merged.
           mkDevShell = pkgs: name:
             let
-              env = environments.${name};
               g = (global.shell or emptyShell) { inherit pkgs; };
-              e = (env.shell or emptyShell) { inherit pkgs; };
+              s = shells.${name} { inherit pkgs; };
             in
             pkgs.mkShell {
               name = "${name}-dev";
-              packages = (g.packages or [ ]) ++ (e.packages or [ ]);
-              shellHook = (g.shellHook or "") + (e.shellHook or "");
+              packages = (g.packages or [ ]) ++ (s.packages or [ ]);
+              shellHook = (g.shellHook or "") + (s.shellHook or "");
             };
 
           perSystem = flake-utils.lib.eachDefaultSystem (s:
@@ -73,11 +71,13 @@
                 system = s;
                 config.allowUnfree = true;
               };
-              shells = builtins.mapAttrs (name: _: mkDevShell pkgs name) environments;
+              built = builtins.mapAttrs (name: _: mkDevShell pkgs name) shells;
             in
             {
-              devShells = shells // nixpkgs.lib.optionalAttrs (shells != { }) {
-                default = builtins.head (builtins.attrValues shells);
+              devShells = built // nixpkgs.lib.optionalAttrs (built != { }) {
+                # attrValues sorts by key, so the default is the alphabetically
+                # first shell (not authored order). Rename to change it.
+                default = builtins.head (builtins.attrValues built);
               };
               formatter = pkgs.nixpkgs-fmt;
             });
@@ -85,13 +85,15 @@
         perSystem // {
           darwinConfigurations = builtins.mapAttrs (_n: host: mkDarwin host) hosts;
         };
-      # This repo's own hosts + environments.
+
+      # This repo's own defs.
       hosts = import ./hosts;
-      environments = import ./environments;
+      modules = import ./modules;
+      shells = import ./shells;
     in
-    (mkOutputs { inherit hosts environments; }) // {
+    (mkOutputs { inherit hosts modules shells; }) // {
       # Re-export the raw defs + engine so a consumer can merge/extend them.
-      inherit hosts environments;
+      inherit hosts modules shells;
       lib = { inherit mkOutputs; };
     };
 }
