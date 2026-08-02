@@ -9,7 +9,7 @@
     };
     casks = [
       "google-chrome"
-      "iterm2"
+      "ghostty"
       "obsidian" # notes
       "stats" # system monitor
     ];

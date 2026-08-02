@@ -37,8 +37,5 @@
     # Determinate Nix wires the store into /etc/bashrc, no system shell module needed.
     programs.zsh.enable = false;
     security.pam.services.sudo_local.touchIdAuth = true; # fingerprint sudo
-    # JetBrains Mono Nerd Font carries the glyphs starship and eza want; point
-    # iTerm2 and the VS Code terminal at "JetBrainsMono Nerd Font".
-    fonts.packages = with pkgs; [ nerd-fonts.jetbrains-mono ];
   };
 }
