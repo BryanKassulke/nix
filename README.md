@@ -1,7 +1,7 @@
 # Bryan's Nix Framework
 
 Declarative macOS config (nix-darwin + home-manager) as a pure flake. Clone it,
-then apply to any host with `darwin-rebuild switch --flake .#<host>`.
+then apply to any host with `sudo darwin-rebuild switch --flake .#<host>`.
 
 ## Model
 
@@ -32,9 +32,9 @@ itself, into one merged nix-darwin + home-manager configuration.
 ## Day-to-day
 
 ```bash
-darwin-rebuild switch --flake .#bryan    # apply changes to this machine
+sudo darwin-rebuild switch --flake .#bryan   # apply changes to this machine
 nix develop .#<name>                     # enter a dev shell
-darwin-rebuild --rollback                # undo the last rebuild
+sudo darwin-rebuild --rollback           # undo the last rebuild
 nix-collect-garbage                      # free disk (add --delete-older-than 30d)
 ```
 
@@ -114,7 +114,7 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 sudo nix run nix-darwin -- switch --flake .#bryan   # first switch, no darwin-rebuild yet
 ```
 
-Open a new terminal, then use `darwin-rebuild switch --flake .#bryan` from then on.
+Open a new terminal, then use `sudo darwin-rebuild switch --flake .#bryan` from then on.
 
 ## Where things live
 
