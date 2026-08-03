@@ -14,6 +14,11 @@
         IdentityFile = "~/.ssh/id_ed25519";
         IdentitiesOnly = true;
       };
+      # Bitbucket (Atlassian) work account: dedicated key.
+      "bitbucket.org" = {
+        IdentityFile = "~/.ssh/id_ed25519_bitbucket";
+        IdentitiesOnly = true;
+      };
     };
   };
 }
