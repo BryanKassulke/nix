@@ -104,6 +104,8 @@ direnv + nix-direnv are already enabled in [`global/home/shell.nix`](global/home
 ## First-time setup on a new Mac
 
 ```bash
+# git (needed to clone; installs Apple's Xcode Command Line Tools, follow the prompt)
+xcode-select --install
 git clone https://github.com/BryanKassulke/nix.git ~/dev/nix && cd ~/dev/nix
 
 # Nix (Determinate installer, flakes on by default)
