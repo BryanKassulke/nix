@@ -1,7 +1,7 @@
 # System basics: Nix daemon, user account, base packages, fonts, security.
 { pkgs, lib, config, username, ... }: {
-  # This machine's uid (`id -u`) which lets nix-darwin own the account and set
-  # bash as login shell. Per-host, null keeps you on Apple's bash.
+  # uid (`id -u`) lets nix-darwin own the account + set bash login shell.
+  # null keeps Apple's bash.
   options.local.userUid = lib.mkOption {
     type = lib.types.nullOr lib.types.int;
     default = null;
@@ -19,8 +19,8 @@
     nixpkgs.hostPlatform = "aarch64-darwin";
     nixpkgs.config.allowUnfree = true;
 
-    # local.userUid gives nix-darwin ownership of the account so it can set the
-    # login shell. gid 20 (staff) is constant, only the uid varies.
+    # userUid gives nix-darwin account ownership to set the login shell.
+    # gid 20 (staff) constant, only uid varies.
     users.knownUsers = lib.mkIf (config.local.userUid != null) [ username ];
     users.users.${username} = {
       name = username;

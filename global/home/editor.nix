@@ -1,4 +1,4 @@
-# Neovim, default editor, Tokyo Night Storm.
+# Neovim, default editor, Tokyo Night.
 { pkgs, ... }: {
   programs.neovim = {
     enable = true;

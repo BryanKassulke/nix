@@ -6,8 +6,8 @@
     shellAliases.ls = "ls -a -hl -G";
     initExtra = builtins.readFile ../config/bashrc.bash;
   };
-  # Nix bin dirs on PATH for every login shell, including non-interactive ones
-  # (bashrc's loop only runs when interactive). Sourced via ~/.profile.
+  # nix bin dirs on PATH for every login shell (bashrc loop is interactive
+  # only). sourced via ~/.profile.
   home.sessionPath = [
     "/run/current-system/sw/bin"
     "/etc/profiles/per-user/${config.home.username}/bin"

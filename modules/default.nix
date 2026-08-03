@@ -1,6 +1,5 @@
-# Reusable host footprints. name -> { darwin?, home? } (both optional). A host
-# opts in via `modules = [ "<name>" ]`. To add one: modules/<name>.nix, then
-# register it below.
+# Reusable footprints. name -> { darwin?, home? }. Add modules/<name>.nix then
+# register below; a host opts in via `modules = [ "<name>" ]`.
 {
   # example = import ./example.nix; # see example.nix for the shape
 }

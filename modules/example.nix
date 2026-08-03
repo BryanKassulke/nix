@@ -1,6 +1,5 @@
-# Example module: a reusable host footprint, { darwin, home }, both optional.
-# Not registered in default.nix, so it never applies. Copy to <name>.nix, trim,
-# register it, and a host opts in via `modules = [ "<name>" ]`.
+# Example module: reusable { darwin, home } footprint, both optional. Not
+# registered, so never applies. Copy to <name>.nix, trim, register, opt in.
 {
   # nix-darwin: GUI apps, Dock pins, system packages.
   darwin = { pkgs, lib, config, ... }: {

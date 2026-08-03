@@ -1,7 +1,5 @@
-# `local.repos` maps a name to a checkout path. Any scope that symlinks files
-# out of a repo reads it, out-of-store so edits need no rebuild. The framework
-# seeds only "public" (itself). A consumer flake registers its own, e.g.
-#   local.repos.private = "${config.home.homeDirectory}/dev/my-config";
+# `local.repos` maps name -> checkout path for scopes that symlink out of a repo
+# (out-of-store, no rebuild on edit). seeds "public"; consumers add their own.
 { config, lib, ... }: {
   options.local.repos = lib.mkOption {
     type = lib.types.attrsOf lib.types.str;

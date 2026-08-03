@@ -1,6 +1,5 @@
-# Example host: every property a scope can set, all optional. Not registered in
-# default.nix, so it never builds. Copy to <name>.nix, trim, and uncomment its
-# line there.
+# Example host: every property a scope can set, all optional. Not registered, so
+# never builds. Copy to <name>.nix, trim, uncomment its line.
 {
   # Modules (from ../modules) to pull in as this host's footprint.
   modules = [ "example" ];

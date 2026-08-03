@@ -1,7 +1,7 @@
 # macOS defaults and the Dock, including the dockApps ordering option.
 { lib, config, ... }: {
-  # Any scope adds apps to `local.dockApps` with a priority which are sorted
-  # once into persistent-apps. Lower priority sits further left.
+  # scopes add apps to `local.dockApps` with a priority, sorted into
+  # persistent-apps. lower priority = further left.
   options.local.dockApps = lib.mkOption {
     type = lib.types.listOf (lib.types.submodule {
       options = {

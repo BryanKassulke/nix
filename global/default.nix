@@ -1,6 +1,5 @@
-# The global base every host inherits: a { darwin, home, shell } scope. The
-# darwin and home layers are split into focused modules under ./darwin and
-# ./home; the module system merges them, so this file is just the index.
+# Global base every host inherits: { darwin, home, shell }. darwin + home split
+# into focused modules under ./darwin and ./home; this file just indexes them.
 {
   darwin.imports = [
     ./darwin/system.nix
@@ -15,10 +14,11 @@
     ./home/ssh.nix
     ./home/editor.nix
     ./home/terminal.nix
+    ./home/vscode.nix
     ./home/dotfiles.nix
   ];
 
-  # Base dev-shell fragment, merged into every shell (see flake.nix).
+  # base dev-shell fragment, merged into every shell.
   shell = { pkgs }: {
     packages = with pkgs; [ git neovim ];
     shellHook = "";

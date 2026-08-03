@@ -9,4 +9,4 @@ vim.opt.ignorecase = true
 vim.opt.smartcase = true
 vim.opt.termguicolors = true
 vim.opt.scrolloff = 4
-pcall(vim.cmd.colorscheme, "tokyonight-storm")
+pcall(vim.cmd.colorscheme, "tokyonight")

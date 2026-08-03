@@ -16,23 +16,18 @@
     inputs@{ self, nixpkgs, flake-utils, nix-darwin, home-manager }:
     let
       system = "aarch64-darwin";
-      # Two composable primitives, separated by WHEN they activate:
-      #   modules -> { darwin?, home? }   persistent host footprint, opt-in per host
-      #   shells  -> { pkgs }: fragment   dev shell, always available via `nix develop`
-      # global is the base module every host gets, and also carries the base
-      # shell fragment merged into every dev shell.
+      # modules: per-host { darwin?, home? } footprint. shells: { pkgs } dev
+      # shell. global: base every host gets, plus the base shell fragment.
       global = import ./global;
       darwinOf = m: m.darwin or { };
       homeOf = m: m.home or { };
       emptyShell = { ... }: { };
 
-      # Turn { hosts, modules, shells } into a full flake output set. A consumer
-      # flake calls this with its own defs merged in, reusing this flake's pinned
-      # inputs and global base (no need to re-import nixpkgs).
+      # build flake outputs. consumers call with their own defs merged in,
+      # reusing these pinned inputs + global base.
       mkOutputs = { hosts ? { }, modules ? { }, shells ? { } }:
         let
-          # A host build = global + each module it names + the host itself, all
-          # overlaid into one merged nix-darwin + home-manager configuration.
+          # host = global + named modules + host, merged into one darwin + hm config.
           mkDarwin = host:
             let
               named = map (n: modules.${n}) (host.modules or [ ]);
@@ -76,8 +71,7 @@
             in
             {
               devShells = built // nixpkgs.lib.optionalAttrs (built != { }) {
-                # attrValues sorts by key, so the default is the alphabetically
-                # first shell (not authored order). Rename to change it.
+                # attrValues sorts by key, so default = alphabetically first shell.
                 default = builtins.head (builtins.attrValues built);
               };
               formatter = pkgs.nixpkgs-fmt;
