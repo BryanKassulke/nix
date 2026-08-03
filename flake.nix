@@ -37,18 +37,19 @@
             let
               named = map (n: modules.${n}) (host.modules or [ ]);
               scopes = [ global ] ++ named ++ [ host ];
+              username = host.username or "Bryan"; # macOS account name, per-host
             in
             nix-darwin.lib.darwinSystem {
               inherit system;
-              specialArgs = { inherit inputs; };
+              specialArgs = { inherit inputs username; };
               modules = (map darwinOf scopes) ++ [
                 home-manager.darwinModules.home-manager
                 {
                   home-manager.useGlobalPkgs = true;
                   home-manager.useUserPackages = true;
-                  home-manager.extraSpecialArgs = { inherit inputs; };
+                  home-manager.extraSpecialArgs = { inherit inputs username; };
                   home-manager.backupFileExtension = "hm-bak";
-                  home-manager.users.Bryan.imports = map homeOf scopes;
+                  home-manager.users.${username}.imports = map homeOf scopes;
                 }
               ];
             };
