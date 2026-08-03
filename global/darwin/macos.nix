@@ -46,8 +46,8 @@
     # Base Dock pins (lower priority = further left). Hosts/modules add more.
     local.dockApps = [
       { path = "/Applications/Google Chrome.app"; priority = 10; }
-      { path = "/Applications/Ghostty.app"; priority = 40; }
-      { path = "/System/Applications/System Settings.app"; priority = 90; }
+      { path = "/Applications/Ghostty.app"; priority = 20; }
+      { path = "/System/Applications/System Settings.app"; priority = 30; }
     ];
   };
 }
