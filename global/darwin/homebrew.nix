@@ -12,6 +12,7 @@
       "ghostty"
       "obsidian" # notes
       "stats" # system monitor
+      "visual-studio-code" # editor; settings + extensions via VS Code Settings Sync
     ];
   };
   launchd.user.agents.stats.serviceConfig = {

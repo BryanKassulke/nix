@@ -14,7 +14,6 @@
     ./home/ssh.nix
     ./home/editor.nix
     ./home/terminal.nix
-    ./home/vscode.nix
     ./home/dotfiles.nix
   ];
 
