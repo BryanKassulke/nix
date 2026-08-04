@@ -17,5 +17,7 @@
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;
+    # Suppress the noisy env diff a Nix devShell dumps (whole stdenv toolchain).
+    config.global.hide_env_diff = true;
   };
 }
