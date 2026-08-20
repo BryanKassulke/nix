@@ -4,7 +4,10 @@
   programs.ghostty = {
     enable = true;
     package = null;
-    settings.theme = "TokyoNight";
+    settings = {
+      theme = "TokyoNight";
+      font-family = "JetBrains Mono";
+    };
   };
 
   # Starship prompt.
