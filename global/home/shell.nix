@@ -6,6 +6,8 @@
     shellAliases.ls = "ls -a -hl -G";
     initExtra = builtins.readFile ../config/bashrc.bash;
   };
+  # directory jumper - needed to include into bashrc
+  home.file.".config/bash/hop.bash".source = ../config/hop.bash;
   # nix bin dirs on PATH for every login shell (bashrc loop is interactive
   # only). sourced via ~/.profile.
   home.sessionPath = [

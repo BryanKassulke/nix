@@ -40,3 +40,6 @@ for _nixbin in \
 done
 unset _nixbin
 export PATH
+
+# hop: jump between dev repos, worktrees and package.json dirs (hop.bash).
+[ -f ~/.config/bash/hop.bash ] && . ~/.config/bash/hop.bash
